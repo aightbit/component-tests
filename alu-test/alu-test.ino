@@ -95,7 +95,7 @@ void setup()
       pinMode(pin, OUTPUT);
   }
 
-  for(int pin=SUM_BYTE; pin < CARRY_IN; pin++) {
+  for(int pin=SUM_BYTE; pin < SUM_CARRY; pin++) {
       pinMode(pin, INPUT);
   }
 
