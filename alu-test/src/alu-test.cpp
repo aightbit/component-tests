@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <ArduinoUnit.h>
 
 //#define CARRY_IN 0
@@ -14,7 +15,8 @@
 #define SUM_BYTE 31
 #define SUM_CARRY 35
 
-void writeByte(int startPin, int value) {
+    void
+    writeByte(int startPin, int value) {
   for(int offset=0; offset < 4; offset++) {
     int bitIsSet = (value >> offset) & 0x1;
     digitalWrite(startPin+offset, bitIsSet ? HIGH : LOW);
