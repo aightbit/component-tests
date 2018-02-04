@@ -5,16 +5,12 @@
 
 #define BUS 22
 
-#define LDR_A 42
-#define LDR_B 43
+#define AI 42
+#define BI 43
 #define ADD 46
 #define NEG 47
-#define OUT_A 36
-#define OUT_B 37
-
-#define ADDR_BUS 2
-#define RAM_CS 50
-#define RAM_WE 52
+#define AO 36
+#define BO 37
 
 void setup()
 {
@@ -27,15 +23,12 @@ void setup()
       pinMode(pin, OUTPUT);
   }
   
-  pinMode(LDR_A, OUTPUT);
-  pinMode(LDR_B, OUTPUT);
+  pinMode(AI, OUTPUT);
+  pinMode(BI, OUTPUT);
   pinMode(ADD, OUTPUT);
   pinMode(NEG, OUTPUT);
-  pinMode(OUT_A, OUTPUT);
-  pinMode(OUT_B, OUTPUT);
-
-  pinMode(RAM_CS, OUTPUT);
-  pinMode(RAM_WE, OUTPUT);
+  pinMode(AO, OUTPUT);
+  pinMode(BO, OUTPUT);
 }
 
 void writeByte(int startPin, int value) {
@@ -128,37 +121,37 @@ void loop()
   for(int i=0;;i = (i+1) & 0xFF) {
     // disable all
     low(CLK);
-    high(OUT_A);
-    high(OUT_B);
-    high(LDR_A);
-    high(LDR_B);
+    high(AO);
+    high(BO);
+    high(AI);
+    high(BI);
     high(ADD);
     low(NEG);
     writeBus(0);
 
-    Serial.print("LDR_A: ");
+    Serial.print("AI: ");
     Serial.println(i);
     writeBus(i);
-    low(LDR_A);
+    low(AI);
     tick();
-    high(LDR_A);
+    high(AI);
 
-    Serial.print("LDR_B: ");
+    Serial.print("BI: ");
     Serial.println(2);
     writeBus(2);
-    low(LDR_B);
+    low(BI);
     tick();
-    high(LDR_B);
+    high(BI);
 
-    low(OUT_A);
-    Serial.print("OUT_A: ");
+    low(AO);
+    Serial.print("AO: ");
     Serial.println(readBus(), BIN);
-    high(OUT_A);
+    high(AO);
 
-    low(OUT_B);
-    Serial.print("OUT_B: ");
+    low(BO);
+    Serial.print("BO: ");
     Serial.println(readBus(), BIN);
-    high(OUT_B);
+    high(BO);
 
     writeBus(0);
 
