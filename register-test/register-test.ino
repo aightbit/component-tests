@@ -33,20 +33,30 @@ void setup()
 
 void writeByte(int startPin, int value) {
   for(int offset=0; offset < 8; offset++) {
-    int bitIsSet = (value >> offset) & 0x1;
     pinMode(startPin+offset, OUTPUT);
+  }
+  
+  for(int offset=0; offset < 8; offset++) {
+    int bitIsSet = (value >> offset) & 0x1;
     digitalWrite(startPin+offset, bitIsSet ? HIGH : LOW);
   }
+  
   delay(1);
 }
 
 int readByte(int startPin) {
-  int value = 0;
+  delay(1);
+  
   for(int offset=0; offset < 8; offset++) {
     pinMode(startPin+offset, INPUT);
+  }
+
+  int value = 0;
+  for(int offset=0; offset < 8; offset++) {
+    // requires its own loop as reading sometimes doesn't reflect
+    // the actual value if you just changed the pinMode before
     value |= (digitalRead(startPin+offset) == HIGH ? 1 : 0) << offset;
   }
-//  delay(1);
   return value;
 }
 
@@ -72,6 +82,15 @@ void tick() {
   high(CLK);
   low(CLK);
 }
+
+void breakpoint() {
+  Serial.println("send character to continue...");
+  while(Serial.read() == -1) {
+    delay(200);
+  }
+}
+
+#define BREAKPOINT breakpoint();
 
 void loop()
 {
@@ -111,73 +130,87 @@ void loop()
 
 
 
-
-
-
-
-
-
-
-  for(int i=0;;i = (i+1) & 0xFF) {
+  for(int i=0;i<=0xFF;i++) {
+    int a = i;
+    int b = 2;
+    
     // disable all
     low(CLK);
-    high(AO);
-    high(BO);
-    high(AI);
-    high(BI);
-    high(ADD);
+    low(AO);
+    low(BO);
+    low(AI);
+    low(BI);
+    low(ADD);
     low(NEG);
     writeBus(0);
 
-    Serial.print("AI: ");
-    Serial.println(i);
-    writeBus(i);
-    low(AI);
-    tick();
     high(AI);
-
-    Serial.print("BI: ");
-    Serial.println(2);
-    writeBus(2);
-    low(BI);
+    writeBus(a);
     tick();
+    low(AI);
+
     high(BI);
-
-    low(AO);
-    Serial.print("AO: ");
-    Serial.println(readBus(), BIN);
-    high(AO);
-
-    low(BO);
-    Serial.print("BO: ");
-    Serial.println(readBus(), BIN);
-    high(BO);
+    writeBus(b);
+    tick();
+    low(BI);
 
     writeBus(0);
 
-    low(ADD);
-    int addition = readBus();
-    Serial.print("ADD: ");
-    Serial.println(addition, BIN);
-    
-    int correctAddition = (i + 2) & 0xFF;
-    if(addition != correctAddition) {
-      Serial.println("Wrong");
+    high(AO);
+    int storedInA = readBus();
+    if(storedInA != a) {
+      Serial.print("AI: ");
+      Serial.println(a, BIN);
+      Serial.print("AO: ");
+      Serial.println(readBus(), BIN);
+      BREAKPOINT
     }
-    high(ADD);
+    low(AO);
 
+    writeBus(0);
+
+    high(BO);
+    int storedInB = readBus();
+    if(storedInB != b) {
+      Serial.print("BI: ");
+      Serial.println(b, BIN);
+      Serial.print("BO: ");
+      Serial.println(readBus(), BIN);
+      BREAKPOINT
+    }
+    low(BO);
+
+    writeBus(0);
+
+    high(ADD);
+    int addition = readBus();
+    int correctAddition = (a + b) & 0xFF;
+    if(addition != correctAddition) {
+      Serial.print("AI: ");
+      Serial.println(a, BIN);
+      Serial.print("ADD: ");
+      Serial.println(addition, BIN);
+      Serial.println("Wrong");
+      BREAKPOINT
+    }
     low(ADD);
+
+    high(ADD);
     high(NEG);
     int subtraction = readBus();
-    Serial.print("SUBTRACT: ");
-    Serial.println(subtraction, BIN);
-    
-    int correctSubtraction = (i - 2) & 0xFF;
+    int correctSubtraction = (a - b) & 0xFF;
     if(subtraction != correctSubtraction) {
-            Serial.println("Wrong");
+      Serial.print("AI: ");
+      Serial.println(a, BIN);
+      Serial.print("SUBTRACT: ");
+      Serial.println(subtraction, BIN);
+      Serial.println("Wrong");
+      
+      BREAKPOINT
     }
     low(NEG);
-    high(ADD);
-
+    low(ADD);
   }
+
+  Serial.println("COMPLETED ROUND :)");
 }

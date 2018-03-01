@@ -2,29 +2,38 @@
 
 #define BUS 22
 
-#define CLK 40
+#define CLK 50
 
-#define ADDR 42
-
-#define RAM_CS 50
-#define RAM_WE 52
+#define RA 36
+#define RI 37
+#define RO 42
 
 void writeByte(int startPin, int value) {
   for(int offset=0; offset < 8; offset++) {
-    int bitIsSet = (value >> offset) & 0x1;
     pinMode(startPin+offset, OUTPUT);
+  }
+  
+  for(int offset=0; offset < 8; offset++) {
+    int bitIsSet = (value >> offset) & 0x1;
     digitalWrite(startPin+offset, bitIsSet ? HIGH : LOW);
   }
+  
   delay(1);
 }
 
 int readByte(int startPin) {
-  int value = 0;
+  delay(1);
+  
   for(int offset=0; offset < 8; offset++) {
     pinMode(startPin+offset, INPUT);
+  }
+
+  int value = 0;
+  for(int offset=0; offset < 8; offset++) {
+    // requires its own loop as reading sometimes doesn't reflect
+    // the actual value if you just changed the pinMode before
     value |= (digitalRead(startPin+offset) == HIGH ? 1 : 0) << offset;
   }
-  delay(1);
   return value;
 }
 
@@ -51,11 +60,20 @@ void tick() {
   low(CLK);
 }
 
+void breakpoint() {
+  Serial.println("send character to continue...");
+  while(Serial.read() == -1) {
+    delay(200);
+  }
+}
+
+#define BREAKPOINT breakpoint();
+
 void resetControlLinesAndBus() {
   low(CLK);
-  high(ADDR);
-  high(RAM_CS);
-  high(RAM_WE);
+  low(RA);
+  low(RI);
+  low(RO);
   
   writeBus(0);
 }
@@ -68,10 +86,10 @@ void setup()
 
   pinMode(CLK, OUTPUT);
 
-  pinMode(ADDR, OUTPUT);
+  pinMode(RA, OUTPUT);
 
-  pinMode(RAM_CS, OUTPUT);
-  pinMode(RAM_WE, OUTPUT);
+  pinMode(RI, OUTPUT);
+  pinMode(RO, OUTPUT);
 
   for(int pin=BUS; pin < BUS+8; pin++) {
       pinMode(pin, OUTPUT);
@@ -87,40 +105,44 @@ void loop()
 
   for(int i = 0; i < 0xFF; i++) {
     resetControlLinesAndBus();
+
     
-    low(ADDR);
+    high(RA);
     writeBus(i);
     tick();
-    high(ADDR);
+    low(RA);
 
     int value = i;
-    low(RAM_WE);
-    low(RAM_CS);
+    high(RI);
+    
     writeBus(value);
+    tick();
     Serial.print("STR["); Serial.print(i); Serial.print("] = ");
     Serial.println(value);
-    high(RAM_CS);
-    high(RAM_WE);
+    low(RI);
   }
 
   for(int i = 0; i < 0xFF; i++) {
     resetControlLinesAndBus();
 
-    low(ADDR);
+    high(RA);
     writeBus(i);
     tick();
-    high(ADDR);
+    low(RA);
 
     // just to make sure that we're not re-reading our written data
     resetControlLinesAndBus();
 
-    low(RAM_CS);
+    high(RO);
     int storedValue = readBus();
-    Serial.print("LDR["); Serial.print(i,BIN); Serial.print("] = ");
-    Serial.println(storedValue, BIN);
+    Serial.print("LDR["); Serial.print(i); Serial.print("] = ");
+    Serial.println(storedValue, DEC);
     if(storedValue != i) {
       Serial.println("wrong");
+      BREAKPOINT
     }
-    high(RAM_CS);
+    low(RO);
   }
+
+  Serial.println("COMPLETED ROUND :)");
 }
